@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Магазин | RPG Clicker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="container">
+  <div class="pixel-panel">
+    <h1 class="pixel-title">МАГАЗИН</h1>
+    <p style="margin-bottom: 20px;">Золото: {{.Player.Gold}}</p>
+
+    <div class="pixel-shop-items">
+      {{range .ShopItems}}
+      <div class="pixel-shop-item" style="display: flex; align-items: center; margin-bottom: 20px;">
+        <img src="{{.Image}}" alt="{{.Name}}" style="width: 64px; height: 64px; margin-right: 15px; border: 3px solid #000; image-rendering: pixelated;">
+        <div style="flex: 1;">
+          <h3>{{.Name}}</h3>
+          <p>{{.Description}}</p>
+          <p>Цена: {{.Cost}} золота</p>
+          {{if .Damage}}<p>+{{.Damage}} к атаке</p>{{end}}
+          {{if .Armor}}<p>+{{.Armor}} к защите</p>{{end}}
+          {{if .Health}}<p>+{{.Health}} к здоровью</p>{{end}}
+          <form action="/buy" method="post" style="margin-top: 10px;">
+            <input type="hidden" name="item" value="{{.Name}}">
+            <button type="submit" class="pixel-btn" {{if lt .Cost $.Player.Gold}}{{else}}disabled{{end}}>
+              КУПИТЬ ({{.Cost}} золота)
+            </button>
+          </form>
+        </div>
+      </div>
+      {{end}}
+    </div>
+
+    <a href="/" class="pixel-btn" style="display: block; text-align: center; margin-top: 20px;">НАЗАД</a>
+  </div>
+</div>
+
+<audio id="buy-sound" src="/static/sounds/buy.wav" preload="auto"></audio>
+<script>
+  document.querySelectorAll('button[type="submit"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const buySound = document.getElementById('buy-sound');
+      if (buySound) {
+        buySound.currentTime = 0;
+        buySound.play();
+      }
+    });
+  });
+</script>
+</body>
+</html>

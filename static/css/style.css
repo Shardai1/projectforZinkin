@@ -1,0 +1,156 @@
+/* Основные стили в пиксельном стиле */
+:root {
+    --bg-color: #1a1c2c;
+    --text-color: #e2e2e3;
+    --primary: #5d275d;
+    --secondary: #b13e53;
+    --accent: #ef7d57;
+    --hp-color: #ff0044;
+    --gold-color: #ffcd75;
+    --border-color: #3b5dc9;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    image-rendering: pixelated;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.pixel-panel {
+    background-color: #2d2135;
+    border: 4px solid var(--border-color);
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.3);
+}
+
+.pixel-title {
+    color: var(--accent);
+    text-shadow: 3px 3px 0 #000;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.pixel-btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-family: inherit;
+    font-size: 16px;
+    cursor: pointer;
+    border: 3px solid #000;
+    box-shadow: 4px 4px 0 #000;
+    transition: all 0.1s;
+}
+
+.pixel-btn:hover {
+    background-color: var(--secondary);
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 #000;
+}
+
+.pixel-btn:active {
+    transform: translate(4px, 4px);
+    box-shadow: none;
+}
+
+.pixel-btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.pixel-health-bar {
+    height: 20px;
+    background-color: #000;
+    border: 3px solid #000;
+    margin: 15px 0;
+}
+
+.pixel-health-fill {
+    height: 100%;
+    background-color: var(--hp-color);
+    transition: width 0.3s;
+}
+
+.pixel-avatar {
+    width: 64px;
+    height: 64px;
+    background-color: var(--secondary);
+    border: 3px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-right: 15px;
+}
+
+.pixel-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pixel-stat {
+    background-color: #3e3a4f;
+    padding: 8px 12px;
+    border: 2px solid #000;
+}
+
+.pixel-boss-img {
+    width: 256px;
+    height: 256px;
+    border: 4px solid #000;
+    margin: 15px auto;
+    display: block;
+    background-color: #5d275d;
+    image-rendering: pixelated;
+}
+
+@keyframes pixel-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.pixel-shake {
+    animation: pixel-shake 0.3s;
+}
+
+.pixel-shop-item {
+    background-color: #3e3a4f;
+    border: 3px solid #000;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+@media (max-width: 600px) {
+    body {
+        font-size: 14px;
+    }
+
+    .pixel-title {
+        font-size: 18px;
+    }
+
+    .pixel-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+
+    .pixel-boss-img {
+        width: 192px;
+        height: 192px;
+    }
+}

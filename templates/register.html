@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Регистрация | RPG Clicker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="container">
+  <div class="pixel-panel">
+    <h1 class="pixel-title">РЕГИСТРАЦИЯ</h1>
+
+    <form action="/register" method="post">
+      <div>
+        <label style="display: block; margin-bottom: 5px;">ИМЯ:</label>
+        <input type="text" name="username" class="pixel-input" required>
+      </div>
+
+      <div>
+        <label style="display: block; margin-bottom: 5px;">ПАРОЛЬ:</label>
+        <input type="password" name="password" class="pixel-input" required>
+        <p style="font-size: 12px; margin-top: 5px;">(минимум 6 символов)</p>
+      </div>
+
+      <div>
+        <label style="display: block; margin-bottom: 5px;">ПОВТОРИТЕ ПАРОЛЬ:</label>
+        <input type="password" name="confirm_password" class="pixel-input" required>
+      </div>
+
+      <button type="submit" class="pixel-btn" style="width: 100%;">СОЗДАТЬ</button>
+
+      {{if .Error}}
+      <p style="color: var(--hp-color); margin-top: 15px;">{{.Error}}</p>
+      {{end}}
+    </form>
+
+    <p style="margin-top: 20px;">Уже есть аккаунт? <a href="/login" style="color: var(--accent);">ВОЙТИ</a></p>
+  </div>
+</div>
+</body>
+</html>
