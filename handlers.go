@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gorilla/websocket"
 	"html/template"
 	"net/http"
 )
@@ -69,12 +70,16 @@ func (g *Game) attackHandler(w http.ResponseWriter, r *http.Request) {
 
 	username := g.sessions[session.Value]
 	player := g.players[username]
-	boss := &g.bosses[g.CurrentBossIndex]
 
-	// Игрок атакует
+	// Если игрок мертв, не позволяем атаковать
+	if player.Health <= 0 {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	boss := &g.bosses[g.CurrentBossIndex]
 	boss.Health -= player.Damage
 
-	// Проверяем смерть босса
 	if boss.Health <= 0 {
 		boss.Defeated = true
 		boss.IsActive = false
@@ -84,6 +89,47 @@ func (g *Game) attackHandler(w http.ResponseWriter, r *http.Request) {
 
 	g.savePlayers()
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (g *Game) respawnHandler(w http.ResponseWriter, r *http.Request) {
+	session, err := r.Cookie("session")
+	if err != nil {
+		http.Error(w, "Session not found", http.StatusUnauthorized)
+		return
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	username := g.sessions[session.Value]
+	player, exists := g.players[username]
+	if !exists {
+		http.Error(w, "Player not found", http.StatusNotFound)
+		return
+	}
+
+	if player.IsDead {
+		player.Health = player.MaxHealth / 2
+		player.IsDead = false
+		g.savePlayers()
+
+		// Отправляем сообщение о возрождении конкретному игроку
+		msg := WSMessage{
+			Type:      "player_respawn",
+			Health:    player.Health,
+			MaxHealth: player.MaxHealth,
+		}
+
+		// Ищем соединение этого игрока
+		for client := range g.clients {
+			if client == r.Context().Value("wsConn").(*websocket.Conn) {
+				client.WriteJSON(msg)
+				break
+			}
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (g *Game) nextBossHandler(w http.ResponseWriter, r *http.Request) {

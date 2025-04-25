@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"math/rand"
 	"net/http"
@@ -38,7 +39,6 @@ type Game struct {
 }
 
 func NewGame() *Game {
-	rand.Seed(time.Now().UnixNano())
 
 	game := &Game{
 		players:          make(map[string]*Player),
@@ -103,14 +103,21 @@ func (g *Game) processBossAttacks() {
 				player.Health -= damageToPlayer
 
 				if player.Health <= 0 {
-					player.Health = player.MaxHealth / 2
-				}
+					player.Health = 0
+					player.IsDead = true
 
-				g.broadcast <- WSMessage{
-					Type:      "boss_attack",
-					Health:    player.Health,
-					MaxHealth: player.MaxHealth,
-					Damage:    damageToPlayer,
+					g.broadcast <- WSMessage{
+						Type:      "player_death", // Новый тип сообщения
+						Health:    player.Health,
+						MaxHealth: player.MaxHealth,
+					}
+				} else {
+					g.broadcast <- WSMessage{
+						Type:      "boss_attack",
+						Health:    player.Health,
+						MaxHealth: player.MaxHealth,
+						Damage:    damageToPlayer,
+					}
 				}
 			}
 		}
@@ -123,6 +130,10 @@ func (g *Game) websocketHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+
+	// Сохраняем соединение в контексте
+	ctx := context.WithValue(r.Context(), "wsConn", conn)
+	r = r.WithContext(ctx)
 
 	g.mu.Lock()
 	g.clients[conn] = true

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Clicker | 8-bit Style</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* Стили для боковых баннеров */
+        .side-banner {
+            position: fixed;
+            top: 28%;
+            transform: translateY(-53%);
+            width: 319px;
+            z-index: 100;
+            image-rendering: pixelated;
+            padding: 6px;
+        }
+
+        .left-banner {
+            left: 5px;
+        }
+
+        .right-banner {
+            right: 5px;
+        }
+
+        /* Стили для экрана смерти */
+        .death-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #ff0000;
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+        }
+
+        .death-screen h2 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 10px #ff0000;
+            animation: pulse 1s infinite;
+        }
+
+        .death-screen p {
+            font-size: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .death-btn {
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            font-size: 1.2rem;
+            border: 4px solid #000;
+            box-shadow: 6px 6px 0 #000;
+            transition: all 0.2s;
+        }
+
+        .death-btn:hover {
+            background-color: #cc0000;
+            transform: translate(2px, 2px);
+            box-shadow: 4px 4px 0 #000;
+        }
+
+        .death-btn:active {
+            transform: translate(6px, 6px);
+            box-shadow: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 768px) {
+            .side-banner {
+                display: none;
+            }
+
+            .death-screen h2 {
+                font-size: 2rem;
+            }
+
+            .death-screen p {
+                font-size: 1rem;
+            }
+        }
+
+        /* Основной контейнер с отступами под баннеры */
+        .container {
+            margin: 0 auto;
+            max-width: 1200px;
+            padding: 0 20px;
+        }
+    </style>
+</head>
+<body>
+<!-- Левый баннер -->
+<img src="/static/images/banners/left_banner.png" alt="Левый баннер" class="side-banner left-banner">
+
+<!-- Правый баннер -->
+<img src="/static/images/banners/right_banner.png" alt="Правый баннер" class="side-banner right-banner">
+
+<!-- Основной контент -->
+<div class="container">
+    <div class="pixel-panel">
+        <h1 class="pixel-title">RPG CLICKER</h1>
+        <div style="display: flex; justify-content: space-between;">
+            <a href="/logout" class="pixel-btn">ВЫХОД</a>
+            <a href="/shop" class="pixel-btn">МАГАЗИН</a>
+        </div>
+    </div>
+
+    <div class="pixel-avatar">
+        {{.Player.Username | firstChar}}
+    </div>
+    <div class="pixel-stats">
+        <div class="pixel-stat" id="player-health">HP: {{.Player.Health}}/{{.Player.MaxHealth}}</div>
+        <div class="pixel-stat">АТК: {{.Player.Damage}}</div>
+        <div class="pixel-stat">ЗОЛОТО: {{.Player.Gold}}</div>
+        <div class="pixel-stat">УР: {{.Player.Level}}</div>
+    </div>
+
+    {{if .Boss.IsActive}}
+    <div class="pixel-panel">
+        <h2 class="pixel-title">{{.Boss.Name}}</h2>
+        <div class="pixel-health-bar">
+            <div class="pixel-health-fill" style="width: {{percent .Boss.Health .Boss.MaxHealth}}%;"></div>
+        </div>
+        <img src="{{.Boss.Image}}" alt="{{.Boss.Name}}" class="pixel-boss-img" id="boss-image">
+        <p style="margin: 15px 0;">{{.Boss.Lore}}</p>
+        <p style="color: var(--hp-color);">Атака: {{.Boss.Damage}} | Интервал: 2-5 сек</p>
+        <form action="/attack" method="post">
+            <button class="pixel-btn" style="width: 100%;">АТАКОВАТЬ!</button>
+        </form>
+    </div>
+    {{else if .Boss.Defeated}}
+    <div class="pixel-panel">
+        <h2 class="pixel-title">ПОБЕДА!</h2>
+        <p>Вы победили {{.Boss.Name}}!</p>
+        <p>Получено золота: {{.Boss.Gold}}</p>
+        <form action="/next" method="post">
+            <button class="pixel-btn" style="width: 100%;">СЛЕДУЮЩИЙ БОСС</button>
+        </form>
+    </div>
+    {{else}}
+    <div class="pixel-panel">
+        <h2 class="pixel-title">ОЖИДАНИЕ БОССА</h2>
+        <p>Приготовьтесь к следующей битве!</p>
+    </div>
+    {{end}}
+</div>
+
+<!-- Экран смерти -->
+<div id="death-screen" class="death-screen">
+    <h2>ВЫ ПОГИБЛИ!</h2>
+    <p>Нажмите кнопку, чтобы возродиться с 50% HP</p>
+    <button class="death-btn">ВОЗРОДИТЬСЯ</button>
+</div>
+
+<audio id="attack-sound" src="/static/sounds/attack.wav" preload="auto"></audio>
+<audio id="boss-attack-sound" src="/static/sounds/boss_attack.wav" preload="auto"></audio>
+<audio id="death-sound" src="/static/sounds/boss-death.wav" preload="auto"></audio>
+<audio id="game-over-sound" src="/static/sounds/game_over.wav" preload="auto"></audio>
+
+<script>
+    // Атака игрока
+    document.querySelector('button[type="submit"]')?.addEventListener('click', function(e) {
+        const bossImg = document.getElementById('boss-image');
+        if (bossImg) {
+            bossImg.classList.add('pixel-shake');
+            setTimeout(() => bossImg.classList.remove('pixel-shake'), 300);
+        }
+
+        const attackSound = document.getElementById('attack-sound');
+        if (attackSound) {
+            attackSound.currentTime = 0;
+            attackSound.play();
+        }
+    });
+
+    // Проверка атак босса через WebSocket
+    const socket = new WebSocket(`ws://${window.location.host}/ws`);
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        const healthBar = document.getElementById('player-health');
+
+        switch(data.type) {
+            case "boss_attack":
+                const bossAttackSound = document.getElementById('boss-attack-sound');
+                if (bossAttackSound) {
+                    bossAttackSound.currentTime = 0;
+                    bossAttackSound.play();
+                }
+
+                if (healthBar) {
+                    healthBar.textContent = `HP: ${data.health}/${data.maxHealth}`;
+                    healthBar.classList.add('pixel-damage-animation');
+                    setTimeout(() => healthBar.classList.remove('pixel-damage-animation'), 1000);
+                }
+                break;
+
+            case "player_death":
+                // Остановка всех звуков
+                document.querySelectorAll('audio').forEach(audio => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                });
+
+                // Воспроизведение звука смерти
+                const gameOverSound = document.getElementById('game-over-sound');
+                if (gameOverSound) {
+                    gameOverSound.play();
+                }
+
+                // Показ экрана смерти
+                document.getElementById('death-screen').style.display = 'flex';
+
+                // Блокировка интерфейса
+                document.querySelectorAll('.pixel-btn').forEach(btn => {
+                    btn.disabled = true;
+                });
+                break;
+
+            case "player_respawn":
+                // Скрытие экрана смерти
+                document.getElementById('death-screen').style.display = 'none';
+
+                // Разблокировка интерфейса
+                document.querySelectorAll('.pixel-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
+
+                // Обновление HP
+                if (healthBar) {
+                    healthBar.textContent = `HP: ${data.health}/${data.maxHealth}`;
+                }
+                break;
+        }
+    };
+
+    // Обработчик кнопки возрождения
+    document.querySelector('.death-btn').addEventListener('click', async function() {
+        try {
+            const response = await fetch('/respawn', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Respawn failed');
+            }
+
+            // Получаем обновленные данные игрока
+            const playerResponse = await fetch('/player-data', {
+                credentials: 'include'
+            });
+
+            if (playerResponse.ok) {
+                const playerData = await playerResponse.json();
+                const healthBar = document.getElementById('player-health');
+                if (healthBar) {
+                    healthBar.textContent = `HP: ${playerData.Health}/${playerData.MaxHealth}`;
+                }
+            }
+
+            // Перезагружаем страницу для полного обновления состояния
+            location.reload();
+
+        } catch (error) {
+            console.error('Error during respawn:', error);
+            // Перезагружаем страницу в случае ошибки
+            location.reload();
+        }
+    });
+</script>
+</body>
+</html>

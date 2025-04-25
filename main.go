@@ -19,6 +19,7 @@ func main() {
 	http.HandleFunc("/buy", game.buyHandler)
 	http.HandleFunc("/next", game.nextBossHandler)
 	http.HandleFunc("/ws", game.websocketHandler)
+	http.HandleFunc("/respawn", game.respawnHandler)
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))

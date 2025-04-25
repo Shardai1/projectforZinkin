@@ -10,6 +10,7 @@ type Player struct {
 	Gold      int    `json:"gold"`
 	Weapon    string `json:"weapon"`
 	Level     int    `json:"level"`
+	IsDead    bool
 }
 
 type Boss struct {
