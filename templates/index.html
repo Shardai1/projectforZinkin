@@ -10,8 +10,8 @@
         /* Стили для боковых баннеров */
         .side-banner {
             position: fixed;
-            top: 28%;
-            transform: translateY(-53%);
+            top: 59%;
+            transform: translateY(-9%);
             width: 319px;
             z-index: 100;
             image-rendering: pixelated;
@@ -26,17 +26,22 @@
             right: 5px;
         }
 
-        @media (max-width: 768px) {
-            .side-banner {
-                display: none;
-            }
-        }
-
         /* Основной контейнер с отступами под баннеры */
         .container {
             margin: 0 auto;
             max-width: 1200px;
             padding: 0 20px;
+        }
+
+        /* Анимация получения урона */
+        .pixel-damage-animation {
+            animation: pixel-damage 0.3s;
+        }
+
+        @keyframes pixel-damage {
+            0% { background-color: normal; }
+            50% { background-color: var(--hp-color); }
+            100% { background-color: normal; }
         }
     </style>
 </head>
@@ -63,7 +68,7 @@
     <div class="pixel-stats">
         <div class="pixel-stat" id="player-health">HP: {{.Player.Health}}/{{.Player.MaxHealth}}</div>
         <div class="pixel-stat">АТК: {{.Player.Damage}}</div>
-        <div class="pixel-stat">ЗОЛОТО: {{.Player.Gold}}</div>
+        <div class="pixel-stat" id="player-gold">ЗОЛОТО: {{.Player.Gold}}</div>
         <div class="pixel-stat">УР: {{.Player.Level}}</div>
     </div>
 
@@ -71,14 +76,12 @@
     <div class="pixel-panel">
         <h2 class="pixel-title">{{.Boss.Name}}</h2>
         <div class="pixel-health-bar">
-            <div class="pixel-health-fill" style="width: {{percent .Boss.Health .Boss.MaxHealth}}%;"></div>
+            <div class="pixel-health-fill" id="boss-health-bar" style="width: {{percent .Boss.Health .Boss.MaxHealth}}%;"></div>
         </div>
         <img src="{{.Boss.Image}}" alt="{{.Boss.Name}}" class="pixel-boss-img" id="boss-image">
         <p style="margin: 15px 0;">{{.Boss.Lore}}</p>
         <p style="color: var(--hp-color);">Атака: {{.Boss.Damage}} | Интервал: 2-5 сек</p>
-        <form action="/attack" method="post">
-            <button class="pixel-btn" style="width: 100%;">АТАКОВАТЬ!</button>
-        </form>
+        <button id="attack-btn" class="pixel-btn" style="width: 100%;">АТАКОВАТЬ!</button>
     </div>
     {{else if .Boss.Defeated}}
     <div class="pixel-panel">
@@ -97,13 +100,22 @@
     {{end}}
 </div>
 
+<!-- Экран смерти -->
+<div id="death-screen" class="death-screen">
+    <h2>ВЫ ПОГИБЛИ!</h2>
+    <p>Нажмите кнопку, чтобы возродиться с 50% HP</p>
+    <button class="death-btn">ВОЗРОДИТЬСЯ</button>
+</div>
+
 <audio id="attack-sound" src="/static/sounds/attack.wav" preload="auto"></audio>
 <audio id="boss-attack-sound" src="/static/sounds/boss_attack.wav" preload="auto"></audio>
 <audio id="death-sound" src="/static/sounds/boss-death.wav" preload="auto"></audio>
+<audio id="game-over-sound" src="/static/sounds/game_over.wav" preload="auto"></audio>
+<audio id="victory-sound" src="/static/sounds/victory.wav" preload="auto"></audio>
 
 <script>
-    // Атака игрока
-    document.querySelector('button[type="submit"]')?.addEventListener('click', function(e) {
+    // Атака игрока через AJAX
+    document.getElementById('attack-btn')?.addEventListener('click', async function() {
         const bossImg = document.getElementById('boss-image');
         if (bossImg) {
             bossImg.classList.add('pixel-shake');
@@ -115,31 +127,134 @@
             attackSound.currentTime = 0;
             attackSound.play();
         }
+
+        try {
+            const response = await fetch('/attack', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Attack failed');
+            }
+
+            const data = await response.json();
+            
+            // Обновляем здоровье босса
+            const healthBar = document.getElementById('boss-health-bar');
+            if (healthBar) {
+                const percent = (data.bossHealth / data.bossMaxHealth) * 100;
+                healthBar.style.width = `${percent}%`;
+            }
+
+            // Обновляем золото игрока
+            const goldElement = document.getElementById('player-gold');
+            if (goldElement) {
+                goldElement.textContent = `ЗОЛОТО: ${data.playerGold}`;
+            }
+
+            // Обновляем здоровье игрока
+            const healthElement = document.getElementById('player-health');
+            if (healthElement) {
+                healthElement.textContent = `HP: ${data.playerHealth}/${data.playerMaxHealth}`;
+            }
+
+            // Если босс побежден
+            if (data.bossDefeated) {
+                const victorySound = document.getElementById('victory-sound');
+                if (victorySound) {
+                    victorySound.play();
+                }
+                setTimeout(() => location.reload(), 1000);
+            }
+
+        } catch (error) {
+            console.error('Attack error:', error);
+        }
     });
 
     // Проверка атак босса через WebSocket
     const socket = new WebSocket(`ws://${window.location.host}/ws`);
     socket.onmessage = function(event) {
         const data = JSON.parse(event.data);
-        if (data.type === "boss_attack") {
-            const bossAttackSound = document.getElementById('boss-attack-sound');
-            if (bossAttackSound) {
-                bossAttackSound.currentTime = 0;
-                bossAttackSound.play();
-            }
+        const healthBar = document.getElementById('player-health');
 
-            const healthBar = document.getElementById('player-health');
-            if (healthBar) {
-                healthBar.classList.add('pixel-damage-animation');
-                setTimeout(() => healthBar.classList.remove('pixel-damage-animation'), 1000);
-            }
+        switch(data.type) {
+            case "boss_attack":
+                const bossAttackSound = document.getElementById('boss-attack-sound');
+                if (bossAttackSound) {
+                    bossAttackSound.currentTime = 0;
+                    bossAttackSound.play();
+                }
 
-            if (data.health !== undefined) {
-                const healthText = `HP: ${data.health}/${data.maxHealth}`;
-                if (healthBar) healthBar.textContent = healthText;
-            }
+                if (healthBar) {
+                    healthBar.textContent = `HP: ${data.health}/${data.maxHealth}`;
+                    healthBar.classList.add('pixel-damage-animation');
+                    setTimeout(() => healthBar.classList.remove('pixel-damage-animation'), 1000);
+                }
+                break;
+
+            case "player_death":
+                document.querySelectorAll('audio').forEach(audio => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                });
+
+                const gameOverSound = document.getElementById('game-over-sound');
+                if (gameOverSound) {
+                    gameOverSound.play();
+                }
+
+                document.getElementById('death-screen').style.display = 'flex';
+                document.querySelectorAll('.pixel-btn').forEach(btn => {
+                    btn.disabled = true;
+                });
+                break;
+
+            case "player_respawn":
+                document.getElementById('death-screen').style.display = 'none';
+                document.querySelectorAll('.pixel-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
+
+                if (healthBar) {
+                    healthBar.textContent = `HP: ${data.health}/${data.maxHealth}`;
+                }
+                break;
         }
     };
+
+    // Обработчик кнопки возрождения
+    document.querySelector('.death-btn').addEventListener('click', async function() {
+        try {
+            const response = await fetch('/respawn', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Respawn failed');
+            }
+
+            const data = await response.json();
+            const healthBar = document.getElementById('player-health');
+            if (healthBar) {
+                healthBar.textContent = `HP: ${data.health}/${data.maxHealth}`;
+            }
+
+            location.reload();
+
+        } catch (error) {
+            console.error('Error during respawn:', error);
+            location.reload();
+        }
+    });
 </script>
 </body>
 </html>
