@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
@@ -8,10 +9,12 @@ import (
 
 func (g *Game) loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		g.renderTemplate(w, "login.html", nil)
+		// Показываем форму входа
+		http.ServeFile(w, r, "templates/login.html")
 		return
 	}
 
+	// Обработка POST запроса
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
@@ -20,21 +23,19 @@ func (g *Game) loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	player, exists := g.players[username]
 	if !exists || !checkPasswordHash(password, player.Password) {
-		g.renderTemplate(w, "login.html", map[string]interface{}{
-			"Error": "Неверное имя пользователя или пароль",
-		})
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
+	// Создаем новую сессию
 	sessionID := generateSessionID()
 	g.sessions[sessionID] = username
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
-		Value:    sessionID,
-		Path:     "/",
-		HttpOnly: true,
-		Expires:  time.Now().Add(24 * time.Hour),
+		Name:    "session",
+		Value:   sessionID,
+		Path:    "/",
+		Expires: time.Now().Add(24 * time.Hour),
 	})
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -115,10 +116,7 @@ func (g *Game) logoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateSessionID() string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, 32)
-	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(b)
+	b := make([]byte, 16)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }

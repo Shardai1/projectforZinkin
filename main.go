@@ -23,6 +23,7 @@ func main() {
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	http.HandleFunc("/player-data", game.playerDataHandler)
 
 	http.ListenAndServe(":8080", nil)
 }
